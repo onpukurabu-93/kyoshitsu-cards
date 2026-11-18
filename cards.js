@@ -27,23 +27,30 @@ var CARDS = [
   { id: "burnham_piano3", title: "バーナム ピアノ教本", yomi: "ばーなむ ぴあのきょうほん", vol: "3" },
   { id: "burnham_piano4", title: "バーナム ピアノ教本", yomi: "ばーなむ ぴあのきょうほん", vol: "4" },
   { id: "burnham_piano5", title: "バーナム ピアノ教本", yomi: "ばーなむ ぴあのきょうほん", vol: "5" },
+  { id: "burnham_piano6", title: "バーナム ピアノ教本", yomi: "ばーなむ ぴあのきょうほん", vol: "6" },
 
   /* バーナム ドリル */
   { id: "burnham_drill1", title: "バーナム ドリル", yomi: "ばーなむ どりる", vol: "1" },
   { id: "burnham_drill2", title: "バーナム ドリル", yomi: "ばーなむ どりる", vol: "2" },
   { id: "burnham_drill3", title: "バーナム ドリル", yomi: "ばーなむ どりる", vol: "3" },
 
-  /* バーナム ピアノテクニック（ミニブック → 導入書 → 1〜4巻） */
+  /* バーナム ピアノテクニック（ミニブック → 導入書 → 1〜4巻 → 全調の練習） */
   { id: "burnham_tech_mini",  title: "バーナム ピアノテクニック", yomi: "ばーなむ ぴあのてくにっく", vol: "ミニブック", order: -2 },
   { id: "burnham_tech_intro", title: "バーナム ピアノテクニック", yomi: "ばーなむ ぴあのてくにっく", vol: "導入書",     order: -1 },
   { id: "burnham_tech1",      title: "バーナム ピアノテクニック", yomi: "ばーなむ ぴあのてくにっく", vol: "1" },
   { id: "burnham_tech2",      title: "バーナム ピアノテクニック", yomi: "ばーなむ ぴあのてくにっく", vol: "2" },
   { id: "burnham_tech3",      title: "バーナム ピアノテクニック", yomi: "ばーなむ ぴあのてくにっく", vol: "3" },
   { id: "burnham_tech4",      title: "バーナム ピアノテクニック", yomi: "ばーなむ ぴあのてくにっく", vol: "4" },
+  { id: "burnham_tech_allkeys", title: "バーナム ピアノテクニック", yomi: "ばーなむ ぴあのてくにっく", vol: "全調の練習", order: 5 },
 
   /* バイエル・チェルニー */
   { id: "beyer_czerny1", title: "バイエル・チェルニー", yomi: "ばいえる ちぇるにー", vol: "1" },
   { id: "beyer_czerny2", title: "バイエル・チェルニー", yomi: "ばいえる ちぇるにー", vol: "2" },
+
+  /* ソルフェージュドリル（幼児版 → 導入編1 → 導入編2） */
+  { id: "solfege_youji",  title: "ソルフェージュドリル", yomi: "そるふぇーじゅどりる", vol: "幼児版",   order: 0 },
+  { id: "solfege_intro1", title: "ソルフェージュドリル", yomi: "そるふぇーじゅどりる", vol: "導入編 1", order: 1 },
+  { id: "solfege_intro2", title: "ソルフェージュドリル", yomi: "そるふぇーじゅどりる", vol: "導入編 2", order: 2 },
 
   /* 巻のないもの */
   { id: "tanki_beyer", title: "短期修了バイエル教本", yomi: "たんきしゅうりょう ばいえるきょうほん" },
