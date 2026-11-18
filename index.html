@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>教室カード印刷（おんぷくらぶ）</title>
+<style>
+  :root { --sheet: min(96vw, 700px); }
+  html, body { margin: 0; padding: 0; background: #e8eef5; }
+  body { display: flex; flex-direction: column; align-items: center; padding: 14px 0; font-family: 'Hiragino Maru Gothic ProN','Rounded Mplus 1c','Meiryo',sans-serif; color: #355; }
+  h1 { font-size: 20px; margin: 4px 0 10px; }
+
+  /* カードをえらぶ */
+  .picker { width: var(--sheet); box-sizing: border-box; background: #fff; border: 2px solid #9cc; border-radius: 14px; padding: 10px; margin-bottom: 10px; }
+  .picker input { width: 100%; box-sizing: border-box; font-size: 16px; padding: 8px 10px; border: 2px solid #9cc; border-radius: 10px; font-family: inherit; }
+  .lbl { font-size: 12px; color: #678; margin: 8px 0 4px; }
+  .btns { display: flex; flex-wrap: wrap; gap: 6px; }
+  .btns button { font-size: 14px; font-weight: bold; padding: 8px 11px; border: 2px solid #9cc; border-radius: 10px; background: #fff; color: #355; font-family: inherit; }
+  .btns button.on { background: #2b8ad8; border-color: #2b8ad8; color: #fff; }
+  .btns button:disabled { opacity: 0.3; }
+  .rows button { min-width: 44px; font-size: 17px; padding: 8px 0; }
+  .vols button { min-width: 48px; font-size: 17px; }
+  .empty { font-size: 13px; color: #89a; padding: 4px 2px; }
+  .cur { font-size: 17px; font-weight: bold; margin: 2px 0 8px; }
+
+  .sheet { position: relative; width: var(--sheet); height: calc(var(--sheet) * 100 / 148); background: #fff; box-shadow: 0 6px 20px rgba(0,0,0,0.2); overflow: hidden; }
+  .card { position: absolute; }
+  .card img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
+  .ov { position: absolute; transform: translate(-50%, -100%); white-space: nowrap; font-weight: 800; text-align: center; line-height: 1; }
+  .mark { position: absolute; background: #b9b9b9; }
+
+  .controls { margin-top: 14px; text-align: center; font-size: 14px; max-width: 460px; padding: 0 8px; }
+  .controls input { font-size: 16px; padding: 8px; margin: 4px; border: 2px solid #9cc; border-radius: 8px; width: 170px; text-align: center; font-family: inherit; }
+  .controls button { font-size: 15px; font-weight: bold; padding: 10px 16px; margin: 6px; border: none; border-radius: 10px; background: #2b8ad8; color: #fff; font-family: inherit; }
+  .note { font-size: 12px; color: #678; margin-top: 6px; line-height: 1.7; }
+
+  #printArea { display: none; }
+  .steps { text-align: left; background: #fff; border: 2px solid #9cc; border-radius: 12px; padding: 10px 14px; margin: 12px 8px 6px; font-size: 14px; line-height: 1.7; }
+  .steps-title { font-weight: bold; font-size: 15px; margin-bottom: 4px; }
+  .steps ol { margin: 4px 0 6px; padding-left: 22px; }
+  .steps li { margin-bottom: 4px; }
+  .sub { font-size: 12px; color: #678; }
+  .adv { margin: 10px 8px; font-size: 13px; color: #678; text-align: left; }
+  .adv summary { cursor: pointer; }
+  #shotBox { margin-top: 10px; display: none; }
+  #shotBox img { width: min(90vw, 360px); border: 1px solid #ccc; }
+
+  @media print {
+    html, body { margin: 0; padding: 0; width: 100mm; height: 148mm; background: #fff; overflow: hidden; }
+    body > *:not(#printArea) { display: none !important; }
+    #printArea { display: block; width: 100mm; height: 148mm; }
+    #printArea img { display: block; width: 100mm; height: 148mm; }
+  }
+</style>
+<!-- カードの いちらん（いつも 新しいものを 読む） -->
+<script>document.write('<script src="cards.js?t=' + Date.now() + '"><\/script>');</script>
+</head>
+<body>
+
+<h1>🎵 教室カード印刷</h1>
+
+<div class="picker">
+  <input id="inSearch" type="search" placeholder="🔍 さがす（例：ばーなむ）">
+  <div id="recentBox"><div class="lbl">さいきん つかった カード</div><div class="btns" id="recent"></div></div>
+  <div id="browseBox">
+    <div class="lbl">あいうえお</div>
+    <div class="btns rows" id="rows"></div>
+    <div class="lbl" id="titlesLbl"></div>
+    <div class="btns" id="titles"></div>
+    <div id="volsBox"><div class="lbl">巻</div><div class="btns vols" id="vols"></div></div>
+  </div>
+  <div id="searchBox"><div class="lbl">みつかった カード</div><div class="btns" id="found"></div></div>
+</div>
+
+<div class="cur" id="curLabel"></div>
+
+<div class="sheet" id="sheet">
+  <div class="card" id="cardF"><img id="imgF" alt=""></div>
+  <div class="card" id="cardB"><img id="imgB" alt=""></div>
+</div>
+
+<div id="printArea"><img id="printImg" alt=""></div>
+
+<div class="controls">
+  <div>
+    <input id="inName" placeholder="なまえ（空欄なら手書き）" maxlength="10">
+    <input id="inDate" placeholder="ひづけ（空欄なら手書き）" maxlength="14">
+    <div><button id="btnToday">きょうの日付を入れる</button></div>
+  </div>
+  <div><button id="btnShot">🖼 画像として見る（長押しで保存）</button></div>
+  <div id="shotBox"><img id="shotImg" alt=""><div class="note">↑ この画像を <b>長押し</b> → 「共有」→ 「プリント」</div></div>
+
+  <div class="steps">
+    <div class="steps-title">🖨 印刷のしかた</div>
+    <ol>
+      <li>カードを えらぶ（上の あいうえお から）</li>
+      <li>なまえ・ひづけを いれる<br><span class="sub">（空欄なら 手書き用の 線のまま）</span></li>
+      <li>「<b>画像として見る（長押しで保存）</b>」を おす</li>
+      <li>でてきた 画像を <b>長押し</b> → 「<b>共有</b>」→「<b>プリント</b>」</li>
+      <li>用紙は「<b>ハガキ</b>」、向きは「たて」で 印刷</li>
+      <li>印刷したら、おもて（左）とうら（右）を 切り分けて、貼り合わせて、60×90mmの パウチへ</li>
+    </ol>
+    <div class="sub">カードの 大きさは 幅56mm × 高さ83.6mm です。</div>
+  </div>
+
+  <details class="adv">
+    <summary>大きさが ちがうとき（ふだんは さわらない）</summary>
+    <div style="margin-top:6px;">
+      <input id="inScale" type="number" min="80" max="200" step="0.1" value="95" style="width:90px"> ％ （印刷の拡大率）
+    </div>
+    <div class="note">
+      いまの 95 で、幅56mmに なります。<br>
+      ちがう大きさに なったときは、いまの数字に「ねらいの幅 ÷ 印刷された幅」を かけます。<br>
+      たとえば、56mmのはずが 59mmに なったら、95 × 56 ÷ 59 ＝ 90 です。
+    </div>
+  </details>
+</div>
+
+<script>
+/* =========================================================
+   カードの きまり（ふつうは さわらない）
+   名前・日付の線の位置は、カードの高さを 1 としたときの割合。
+   ちがう位置のカードは、cards.js の その行に name: 0.70 のように書けば上書きできる
+   ========================================================= */
+var DEF = { cw: 56, ch: 83.6, name: 0.728, date: 0.819, nx: 0.571, nf: 0.060, no: 0.008, df: 0.040, dof: 0.006 };
+var CX_FRONT = 41, CX_BACK = 107, CY = 50, SW = 148, SH = 100;
+var KANA_ROWS = [
+  ["あ", "あいうえおぁぃぅぇぉゔ"], ["か", "かきくけこがぎぐげご"], ["さ", "さしすせそざじずぜぞ"],
+  ["た", "たちつてとだぢづでどっ"], ["な", "なにぬねの"], ["は", "はひふへほばびぶべぼぱぴぷぺぽ"],
+  ["ま", "まみむめも"], ["や", "やゆよゃゅょ"], ["ら", "らりるれろ"], ["わ", "わをんゎ"]
+];
+
+var cards = (typeof CARDS !== "undefined" ? CARDS : []).filter(function (c) { return c && c.id; }).map(function (c) {
+  var t = {}; for (var k in DEF) t[k] = DEF[k]; for (var k2 in c) t[k2] = c[k2];
+  t.title = t.title || t.id; t.yomi = t.yomi || t.title;
+  t.vol = (t.vol === undefined || t.vol === null) ? "" : String(t.vol);
+  t.label = t.title + (t.vol ? " " + t.vol : "");
+  t.row = rowOf(t.yomi);
+  return t;
+});
+
+function hira(s) { return String(s).replace(/[ァ-ヶ]/g, function (ch) { return String.fromCharCode(ch.charCodeAt(0) - 0x60); }); }
+function norm(s) { return hira(s).toLowerCase().replace(/[\s　・ー\-]/g, ""); }
+function rowOf(y) {
+  var ch = hira(String(y).trim()).charAt(0);
+  for (var i = 0; i < KANA_ROWS.length; i++) if (KANA_ROWS[i][1].indexOf(ch) >= 0) return KANA_ROWS[i][0];
+  return "他";
+}
+function cmp(a, b) { return hira(a).localeCompare(hira(b), "ja"); }
+function volNum(v) { var n = parseFloat(String(v).replace(/[０-９]/g, function (d) { return d.charCodeAt(0) - 0xFF10; })); return isNaN(n) ? 9999 : n; }
+function byId(id) { for (var i = 0; i < cards.length; i++) if (cards[i].id === id) return cards[i]; return null; }
+
+/* タイトル（シリーズ）ごとに まとめる */
+function groups(list) {
+  var m = {}, out = [];
+  list.forEach(function (c) { if (!m[c.title]) { m[c.title] = { title: c.title, yomi: c.yomi, items: [] }; out.push(m[c.title]); } m[c.title].items.push(c); });
+  out.forEach(function (g) { g.items.sort(function (a, b) { return volNum(a.vol) - volNum(b.vol) || cmp(a.vol, b.vol); }); });
+  out.sort(function (a, b) { return cmp(a.yomi, b.yomi); });
+  return out;
+}
+
+var cur = cards[0] || null, curRow = cur ? cur.row : "あ";
+
+/* さいきん つかった カード（この スマホの中だけに おぼえる） */
+function getRecent() { try { return JSON.parse(localStorage.getItem("kc_recent") || "[]").filter(byId); } catch (e) { return []; } }
+function addRecent(id) { try { var r = getRecent().filter(function (x) { return x !== id; }); r.unshift(id); localStorage.setItem("kc_recent", JSON.stringify(r.slice(0, 6))); } catch (e) {} }
+
+function btn(text, on, fn, disabled) {
+  var b = document.createElement("button"); b.textContent = text;
+  if (on) b.className = "on"; if (disabled) b.disabled = true;
+  b.addEventListener("click", fn); return b;
+}
+function choose(c) { cur = c; curRow = c.row; render(); }
+
+function renderPicker() {
+  var q = norm(document.getElementById("inSearch").value);
+  document.getElementById("browseBox").style.display = q ? "none" : "block";
+  document.getElementById("searchBox").style.display = q ? "block" : "none";
+
+  var rec = getRecent();
+  document.getElementById("recentBox").style.display = (!q && rec.length) ? "block" : "none";
+  var re = document.getElementById("recent"); re.innerHTML = "";
+  rec.forEach(function (id) { var c = byId(id); re.appendChild(btn(c.label, c === cur, function () { choose(c); })); });
+
+  if (q) {
+    var f = document.getElementById("found"); f.innerHTML = "";
+    var hits = cards.filter(function (c) { return norm(c.yomi).indexOf(q) >= 0 || norm(c.title).indexOf(q) >= 0 || norm(c.label).indexOf(q) >= 0; });
+    groups(hits).forEach(function (g) { g.items.forEach(function (c) { f.appendChild(btn(c.label, c === cur, function () { choose(c); })); }); });
+    if (!hits.length) f.innerHTML = '<div class="empty">みつかりません</div>';
+    return;
+  }
+
+  var rows = document.getElementById("rows"); rows.innerHTML = "";
+  var rowNames = KANA_ROWS.map(function (r) { return r[0]; });
+  if (cards.some(function (c) { return c.row === "他"; })) rowNames.push("他");
+  rowNames.forEach(function (r) {
+    var has = cards.some(function (c) { return c.row === r; });
+    rows.appendChild(btn(r, r === curRow, function () { curRow = r; renderPicker(); }, !has));
+  });
+
+  document.getElementById("titlesLbl").textContent = curRow === "他" ? "そのほか" : curRow + "行";
+  var ti = document.getElementById("titles"); ti.innerHTML = "";
+  var gs = groups(cards.filter(function (c) { return c.row === curRow; }));
+  gs.forEach(function (g) {
+    var on = cur && cur.title === g.title;
+    ti.appendChild(btn(g.title, on, function () {
+      var keep = cur && cur.title === g.title ? cur : g.items[0];
+      choose(keep);
+    }));
+  });
+  if (!gs.length) ti.innerHTML = '<div class="empty">この行には まだ カードが ありません</div>';
+
+  var vb = document.getElementById("volsBox"), vs = document.getElementById("vols"); vs.innerHTML = "";
+  var g = cur && cur.row === curRow ? gs.filter(function (x) { return x.title === cur.title; })[0] : null;
+  if (g && (g.items.length > 1 || g.items[0].vol)) {
+    vb.style.display = "block";
+    g.items.forEach(function (c) { vs.appendChild(btn(c.vol || "—", c === cur, function () { choose(c); })); });
+  } else vb.style.display = "none";
+}
+
+/* ---------- カードの 表示 ---------- */
+var nameEl = document.getElementById("inName"), dateEl = document.getElementById("inDate");
+function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+function overlay(x, y, fsRatio, html, cwMm) {
+  var d = document.createElement("div");
+  d.className = "ov";
+  d.style.left = (x * 100) + "%"; d.style.top = (y * 100) + "%";
+  d.style.fontSize = "calc(var(--sheet) * " + (cwMm / SW) + " * " + fsRatio + ")";
+  d.style.color = "#2b3a6a"; d.innerHTML = html;
+  return d;
+}
+function addMarks(sheet, t) {
+  sheet.querySelectorAll(".mark").forEach(function (m) { m.remove(); });
+  var L = 1.5, G = 1.0, T = 0.2;
+  [CX_FRONT, CX_BACK].forEach(function (cx) {
+    var x0 = cx - t.cw / 2, y0 = CY - t.ch / 2, x1 = x0 + t.cw, y1 = y0 + t.ch;
+    [[x0, y0, -1, -1], [x1, y0, 1, -1], [x0, y1, -1, 1], [x1, y1, 1, 1]].forEach(function (c) {
+      var hx = c[2] < 0 ? c[0] - G - L : c[0] + G, vy = c[3] < 0 ? c[1] - G - L : c[1] + G;
+      [[hx, c[1] - T / 2, L, T], [c[0] - T / 2, vy, T, L]].forEach(function (r) {
+        var m = document.createElement("div"); m.className = "mark";
+        m.style.left = (r[0] / SW * 100) + "%"; m.style.top = (r[1] / SH * 100) + "%";
+        m.style.width = (r[2] / SW * 100) + "%"; m.style.height = (r[3] / SH * 100) + "%";
+        sheet.appendChild(m);
+      });
+    });
+  });
+}
+function placeCard(el, cx, t) {
+  el.style.left = ((cx - t.cw / 2) / SW * 100) + "%"; el.style.top = ((CY - t.ch / 2) / SH * 100) + "%";
+  el.style.width = (t.cw / SW * 100) + "%"; el.style.height = (t.ch / SH * 100) + "%";
+}
+
+function render() {
+  renderPicker();
+  var t = cur;
+  document.getElementById("curLabel").textContent = t ? "📗 " + t.label : "カードが まだ ありません（cards.js を 見てください）";
+  if (!t) return;
+  var imgF = document.getElementById("imgF"), imgB = document.getElementById("imgB");
+  var vf = "card_" + t.id + "_front.png?v=" + IMG_VER, vb = "card_" + t.id + "_back.png?v=" + IMG_VER;
+  if (imgF.getAttribute("src") !== vf) imgF.src = vf;
+  if (imgB.getAttribute("src") !== vb) imgB.src = vb;
+
+  var cardF = document.getElementById("cardF"), cardB = document.getElementById("cardB");
+  placeCard(cardF, CX_FRONT, t); placeCard(cardB, CX_BACK, t);
+  addMarks(document.getElementById("sheet"), t);
+  cardF.querySelectorAll(".ov").forEach(function (o) { o.remove(); });
+
+  var name = nameEl.value, date = dateEl.value;
+  if (name) cardF.appendChild(overlay(t.nx, t.name - t.no, Math.min(t.nf, 0.46 / Math.max(name.length, 1)), esc(name), t.cw));
+  if (date) cardF.appendChild(overlay(t.nx, t.date - t.dof, Math.min(t.df, 0.46 / Math.max(date.length, 1)), esc(date), t.cw));
+  document.getElementById("shotBox").style.display = "none";
+}
+
+function todayStr() { var d = new Date(); return d.getFullYear() + "年" + (d.getMonth() + 1) + "月" + d.getDate() + "日"; }
+nameEl.addEventListener("input", render);
+dateEl.addEventListener("input", render);
+document.getElementById("inSearch").addEventListener("input", renderPicker);
+document.getElementById("btnToday").addEventListener("click", function () { dateEl.value = todayStr(); render(); });
+
+/* =========================================================
+   ハガキ1枚ぶんの画像を作る（たて向き 100×148mm、300dpi）
+   ========================================================= */
+function getP() { var v = parseFloat(document.getElementById("inScale").value); if (isNaN(v) || v < 50) v = 100; return v / 100; }
+
+function buildHagaki() {
+  var P = getP(), pxmm = 300 / 25.4;
+  var W = Math.round(100 * pxmm), H = Math.round(148 * pxmm);
+  var cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  var ctx = cv.getContext("2d");
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, W, H);
+  var t = cur, cw = t.cw, ch = t.ch;
+  ctx.save(); ctx.translate(100 * pxmm, 0); ctx.rotate(Math.PI / 2); ctx.scale(pxmm, pxmm);
+  var FONT = '"Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic","Meiryo",sans-serif';
+  [{ img: document.getElementById("imgF"), cx: CX_FRONT, front: true }, { img: document.getElementById("imgB"), cx: CX_BACK, front: false }].forEach(function (c) {
+    var x0 = c.cx - cw / 2, y0 = 50 - ch / 2;
+    ctx.save();
+    ctx.translate(c.cx, 50); ctx.scale(P, P); ctx.translate(-c.cx, -50);
+    ctx.drawImage(c.img, x0, y0, cw, ch);
+    var L = 1.5, G = 1.0, T = 0.2;
+    ctx.fillStyle = "#b9b9b9";
+    [[x0, y0, -1, -1], [x0 + cw, y0, 1, -1], [x0, y0 + ch, -1, 1], [x0 + cw, y0 + ch, 1, 1]].forEach(function (p) {
+      var hx = p[2] < 0 ? p[0] - G - L : p[0] + G, vy = p[3] < 0 ? p[1] - G - L : p[1] + G;
+      ctx.fillRect(hx, p[1] - T / 2, L, T); ctx.fillRect(p[0] - T / 2, vy, T, L);
+    });
+    if (c.front) {
+      ctx.textAlign = "center"; ctx.textBaseline = "bottom"; ctx.fillStyle = "#2b3a6a";
+      var name = nameEl.value, date = dateEl.value;
+      if (name) { ctx.font = "800 " + (Math.min(t.nf, 0.46 / Math.max(name.length, 1)) * cw) + "px " + FONT; ctx.fillText(name, x0 + t.nx * cw, y0 + (t.name - t.no) * ch); }
+      if (date) { ctx.font = "800 " + (Math.min(t.df, 0.46 / Math.max(date.length, 1)) * cw) + "px " + FONT; ctx.fillText(date, x0 + t.nx * cw, y0 + (t.date - t.dof) * ch); }
+    }
+    ctx.restore();
+  });
+  ctx.restore();
+  return cv.toDataURL("image/png");
+}
+
+document.getElementById("btnShot").addEventListener("click", function () {
+  if (!cur) return;
+  var f = document.getElementById("imgF"), b = document.getElementById("imgB");
+  if (!(f.complete && f.naturalWidth > 0 && b.complete && b.naturalWidth > 0)) { alert("カードの画像が 読みこめていません。少し待ってから、もう一度 押してください。\n（ずっと出ないときは、同じ場所に 画像が あるか 見てください）"); return; }
+  var url;
+  try { url = buildHagaki(); } catch (e) { alert("画像を作れませんでした。ページを開き直してください。"); return; }
+  document.getElementById("shotImg").src = url;
+  document.getElementById("shotBox").style.display = "block";
+  addRecent(cur.id); renderPicker();
+});
+
+/* URL で はじめから 入れておける：?type=burnham_piano1&name=たろう&date=2026-11-18 */
+try {
+  var q = new URLSearchParams(location.search), qt = q.get("type"), qn = q.get("name"), qd = q.get("date");
+  if (qt && byId(qt)) { cur = byId(qt); curRow = cur.row; }
+  else if (getRecent().length) { cur = byId(getRecent()[0]); curRow = cur.row; }
+  if (qn) nameEl.value = qn;
+  if (qd) { var dm = qd.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/); dateEl.value = dm ? (+dm[1]) + "年" + (+dm[2]) + "月" + (+dm[3]) + "日" : qd; }
+} catch (e) {}
+render();
+</script>
+</body>
+</html>
