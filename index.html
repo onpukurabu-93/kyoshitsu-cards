@@ -148,13 +148,15 @@ function rowOf(y) {
 }
 function cmp(a, b) { return hira(a).localeCompare(hira(b), "ja"); }
 function volNum(v) { var n = parseFloat(String(v).replace(/[０-９]/g, function (d) { return d.charCodeAt(0) - 0xFF10; })); return isNaN(n) ? 9999 : n; }
+/* 巻の並び：order があれば その数字、なければ 巻の数字 */
+function vkey(c) { return (c.order !== undefined && c.order !== null) ? Number(c.order) : volNum(c.vol); }
 function byId(id) { for (var i = 0; i < cards.length; i++) if (cards[i].id === id) return cards[i]; return null; }
 
 /* タイトル（シリーズ）ごとに まとめる */
 function groups(list) {
   var m = {}, out = [];
   list.forEach(function (c) { if (!m[c.title]) { m[c.title] = { title: c.title, yomi: c.yomi, items: [] }; out.push(m[c.title]); } m[c.title].items.push(c); });
-  out.forEach(function (g) { g.items.sort(function (a, b) { return volNum(a.vol) - volNum(b.vol) || cmp(a.vol, b.vol); }); });
+  out.forEach(function (g) { g.items.sort(function (a, b) { return vkey(a) - vkey(b) || cmp(a.vol, b.vol); }); });
   out.sort(function (a, b) { return cmp(a.yomi, b.yomi); });
   return out;
 }
